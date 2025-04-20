@@ -1,9 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth import get_user_model
 
 class User(AbstractUser):
-    nickname = models.CharField(max_length=30)
-    birthdate = models.DateField()
+    nickname = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(unique=True)
 
 class Board(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -18,5 +19,5 @@ class Memo(models.Model):
     number = models.AutoField(primary_key=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     content = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=False, related_name='memos')
 
-    
