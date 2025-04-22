@@ -1,83 +1,140 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TextInput,
-  Button,
   StyleSheet,
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useCallback } from 'react';
+import { RootStackParamList } from '../../App';
 
-const BoardListScreen = () => {
-  const navigation = useNavigation();
-  const [boards, setBoards] = useState<string[]>([]);
+type Board = {
+  id: number;
+  title: string;
+  category: string;
+  summary: string;
+  is_completed: boolean;
+  created_at: string;
+};
+
+const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [boards, setBoards] = useState<Board[]>([]);
   const [newBoardName, setNewBoardName] = useState('');
 
-  useEffect(() => {
-    loadBoards();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
+        await fetchBoards(token);
+      };
+      loadData();
+    }, [])
+  );
 
-  const loadBoards = async () => {
-    const data = await AsyncStorage.getItem('board-list');
-    if (data) setBoards(JSON.parse(data));
+  const fetchBoards = async (token: string) => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/boards/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setBoards(response.data);
+    } catch (error) {
+      console.error('보드 불러오기 실패:', error);
+    }
   };
 
-  const saveBoards = async (list: string[]) => {
-    setBoards(list);
-    await AsyncStorage.setItem('board-list', JSON.stringify(list));
-  };
+  const addBoard = async () => {
+    const title = newBoardName.trim();
+    if (!title) return;
 
-  const addBoard = () => {
-    const name = newBoardName.trim();
-    if (!name) return;
-    if (boards.includes(name)) {
+    if (boards.find((b) => b.title === title)) {
       Alert.alert('중복된 보드 이름입니다.');
       return;
     }
 
-    const next = [...boards, name];
-    saveBoards(next);
-    setNewBoardName('');
-  };
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
 
-  const deleteBoard = (boardId: string) => {
-    Alert.alert('보드 삭제', `"${boardId}"를 삭제할까요?`, [
-      { text: '취소' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          const next = boards.filter((b) => b !== boardId);
-          await AsyncStorage.removeItem(`memo-board:${boardId}`);
-          saveBoards(next);
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/boards/',
+        {
+          title,
+          category: '기본',
+          summary: '',
+          is_completed: false,
         },
-      },
-    ]);
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setBoards((prev) => [...prev, response.data]);
+      setNewBoardName('');
+    } catch (error) {
+      console.error('보드 추가 실패:', error);
+      Alert.alert('보드 추가 실패', '서버와 연결할 수 없습니다.');
+    }
   };
 
-  const goToBoard = (boardId: string) => {
+  const goToBoard = (boardId: number) => {
     navigation.navigate('MemoBoard', { folderId: boardId });
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    setIsLoggedIn(false);
+  };
+
+  const summarizeBoard = async (boardId: number) => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/api/boards/${boardId}/summarize/`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      Alert.alert('요약 결과', response.data.summary);
+    } catch (error) {
+      console.error('요약 실패:', error);
+      Alert.alert('요약 실패', 'ChatGPT 요약 요청이 실패했습니다.');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📋 메모 보드 목록</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>📋 메모 보드 목록</Text>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text style={styles.logout}>로그아웃</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={boards}
-        keyExtractor={(item) => item}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.boardRow}>
-            <TouchableOpacity onPress={() => goToBoard(item)} style={styles.boardButton}>
-              <Text style={styles.boardText}>{item}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteBoard(item)}>
-              <Text style={styles.delete}>🗑</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.boardRow}
+            onPress={() => goToBoard(item.id)}
+            onLongPress={() => summarizeBoard(item.id)}
+          >
+            <Text style={styles.boardText}>{item.title}</Text>
+          </TouchableOpacity>
         )}
       />
 
@@ -87,7 +144,9 @@ const BoardListScreen = () => {
         value={newBoardName}
         onChangeText={setNewBoardName}
       />
-      <Button title="보드 추가" onPress={addBoard} />
+      <TouchableOpacity style={styles.addButton} onPress={addBoard}>
+        <Text style={styles.addButtonText}>보드 추가</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -96,7 +155,17 @@ export default BoardListScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: { fontSize: 22, fontWeight: 'bold' },
+  logout: {
+    fontSize: 16,
+    color: 'red',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -106,21 +175,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   boardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
     paddingVertical: 12,
-  },
-  boardButton: {
-    flex: 1,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
   },
   boardText: {
     fontSize: 18,
   },
-  delete: {
+  addButton: {
+    backgroundColor: '#88c0d0',
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: 'white',
     fontSize: 16,
-    color: 'red',
-    paddingHorizontal: 12,
+    fontWeight: 'bold',
   },
 });

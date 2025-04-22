@@ -8,9 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const LoginScreen = () => {
+const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,9 +24,14 @@ const LoginScreen = () => {
       });
 
       if (response.status === 200) {
-        const userId = response.data.id;
-        Alert.alert('로그인 성공', '환영합니다!');
-        navigation.navigate('BoardList', { userId });
+        const { id, nickname, token } = response.data;
+
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('userId', id.toString());
+        await AsyncStorage.setItem('nickname', nickname);
+
+        Alert.alert('로그인 성공', `${nickname}님 환영합니다!`);
+        setIsLoggedIn(true); // 🔥 핵심 부분: App.tsx 상태 갱신
       }
     } catch (error: any) {
       Alert.alert('로그인 실패', error.response?.data?.error || '서버 오류');

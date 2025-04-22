@@ -1,6 +1,10 @@
 from pathlib import Path
+import os
+
+OPENAI_API_KEY = ""
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 SECRET_KEY = 'django-insecure-v%elj5h(l*p_6!y6vk!e+^!s=cv$ty8mdbrce$=@j-(wzd$wtn'
 
