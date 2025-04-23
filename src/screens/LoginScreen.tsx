@@ -43,7 +43,7 @@ const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void 
       <Text style={styles.logo}>MEMO-RE</Text>
 
       <TextInput
-        placeholder="이메일"
+        placeholder="이메일 아이디"
         style={styles.input}
         value={email}
         onChangeText={setEmail}

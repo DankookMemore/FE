@@ -41,7 +41,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
 
   const fetchBoards = async (token: string) => {
     try {
-      const response = await axios.get('http://localhost:8000/api/boards/', {
+      const response = await axios.get('http://172.30.105.207:8000/api/boards/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -53,20 +53,30 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
   };
 
   const addBoard = async () => {
+    Alert.alert('버튼 클릭됨');
+    console.log('🟢 보드 추가 버튼 눌림');
+  
     const title = newBoardName.trim();
-    if (!title) return;
-
+    if (!title) {
+      console.log('❗️제목 없음으로 종료');
+      return;
+    }
+  
     if (boards.find((b) => b.title === title)) {
       Alert.alert('중복된 보드 이름입니다.');
       return;
     }
-
+  
     const token = await AsyncStorage.getItem('token');
-    if (!token) return;
-
+    if (!token) {
+      console.log('❌ 토큰 없음, 로그인 필요');
+      return;
+    }
+  
     try {
+      console.log('📤 axios 요청 시작');
       const response = await axios.post(
-        'http://localhost:8000/api/boards/',
+        'http://172.20.10.2:8000/api/boards/',
         {
           title,
           category: '기본',
@@ -79,13 +89,20 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
           },
         }
       );
+      console.log('✅ 보드 추가 성공:', response.data);
       setBoards((prev) => [...prev, response.data]);
       setNewBoardName('');
-    } catch (error) {
-      console.error('보드 추가 실패:', error);
-      Alert.alert('보드 추가 실패', '서버와 연결할 수 없습니다.');
+    } catch (error: any) {
+      console.error('❌ axios 요청 실패:', error.message);
+      if (error.response) {
+        console.log('📛 응답 상태코드:', error.response.status);
+        console.log('📛 응답 데이터:', error.response.data);
+      } else {
+        console.log('📛 응답 없음 (네트워크 오류 등)');
+      }
+      Alert.alert('보드 추가 실패', '서버와 통신할 수 없습니다.');
     }
-  };
+  }; // ⬅️ 함수 닫힘 누락 수정됨
 
   const goToBoard = (boardId: number) => {
     navigation.navigate('MemoBoard', { folderId: boardId });
@@ -102,7 +119,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
 
     try {
       const response = await axios.post(
-        `http://localhost:8000/api/boards/${boardId}/summarize/`,
+        `http://172.30.105.207:8000/api/boards/${boardId}/summarize/`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -151,8 +168,6 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
   );
 };
 
-export default BoardListScreen;
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   header: {
@@ -195,3 +210,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+export default BoardListScreen;

@@ -5,17 +5,23 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth import authenticate
+from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
 
-from .models import Board, Memo
+from .models import Board, Memo, User
 from .serializers import UserSerializer, BoardSerializer, MemoSerializer
 
 User = get_user_model()
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 # JWT 토큰 생성 함수
 def get_tokens_for_user(user):
@@ -29,33 +35,34 @@ def get_tokens_for_user(user):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_profile(request):
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)
+    print("✅ 사용자 프로필 요청:", request.user)
+    return Response({
+        'id': request.user.id,
+        'username': request.user.username,
+        'nickname': request.user.nickname,
+    })
 
 # 로그인
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login_view(request):
-    email = request.data.get('username')
+    username = request.data.get('username')
     password = request.data.get('password')
 
-    try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
-        return Response({'error': '존재하지 않는 이메일입니다.'}, status=401)
+    user = authenticate(request, username=username, password=password)
 
-    if user.check_password(password):
-        tokens = get_tokens_for_user(user)
+    if user is not None:
         return Response({
             'id': user.id,
             'username': user.username,
-            'nickname': user.nickname,
-            'token': tokens['access'],
-        }, status=200)
+            'nickname': user.nickname
+        })
     else:
-        return Response({'error': '비밀번호가 틀렸습니다.'}, status=401)
+        return Response({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 # 회원가입
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def signup_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -86,27 +93,22 @@ def signup_view(request):
     except Exception as e:
         return Response({'error': f'서버 오류: {str(e)}'}, status=500)
 
-# 비밀번호 재설정
 @api_view(['POST'])
 def reset_password_view(request):
-    username = request.data.get('username')
+    email = request.data.get('email')
     new_password = request.data.get('new_password')
 
-    if not username or not new_password:
-        return Response({'error': '아이디와 새 비밀번호를 모두 입력해주세요.'}, status=400)
+    if not email or not new_password:
+        return Response({'error': '이메일과 새로운 비밀번호를 모두 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = User.objects.get(username=username)
+        user = User.objects.get(email=email)
         user.set_password(new_password)
         user.save()
-        return Response({'message': '비밀번호가 성공적으로 변경되었습니다.'}, status=200)
+        return Response({'message': '비밀번호가 성공적으로 변경되었습니다.'})
     except User.DoesNotExist:
-        return Response({'error': '해당 사용자를 찾을 수 없습니다.'}, status=404)
-
-# 임시 비밀번호 생성
-def generate_temp_password(length=10):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-
+        return Response({'error': '해당 이메일로 등록된 사용자가 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+    
 # GPT 요약
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -142,10 +144,6 @@ def summarize_board_view(request, pk):
         return Response({"summary": f"[요약 실패] {str(e)}"}, status=500)
 
 # ViewSets
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
@@ -154,10 +152,23 @@ class BoardViewSet(viewsets.ModelViewSet):
     filterset_fields = ['user']
 
     def get_queryset(self):
-        return Board.objects.filter(user=self.request.user)
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            print("❌ [get_queryset] 인증되지 않은 사용자")
+            return Board.objects.none()
+        print(f"📥 [get_queryset] 요청자: {user}")
+        return Board.objects.filter(user=user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        user = self.request.user
+        print("✅ [perform_create] 호출됨")
+        print("👤 현재 사용자:", user)
+        if not user or not user.is_authenticated:
+            print("❌ [perform_create] 인증되지 않은 사용자")
+            return  # 명시적으로 막음
+
+        serializer.save(user=user)
+        print("✅ [perform_create] 보드 저장 완료")
 
 class MemoViewSet(viewsets.ModelViewSet):
     queryset = Memo.objects.all()
@@ -169,4 +180,7 @@ class MemoViewSet(viewsets.ModelViewSet):
         return Memo.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        print("📍 Board 추가 요청")
+        print("🙋 request.user:", self.request.user)
+        print("🙋 request.auth:", self.request.auth)
         serializer.save(user=self.request.user)

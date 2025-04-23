@@ -12,46 +12,53 @@ import axios from 'axios';
 
 const SignupScreen = () => {
   const navigation = useNavigation();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
-  const [email, setEmail] = useState('');
 
   const handleSignUp = async () => {
-    if (!username || !password || !nickname || !email) {
+    if (!email || !password || !nickname) {
       Alert.alert('오류', '모든 항목을 입력해주세요.');
       return;
     }
-
+  
     try {
       const response = await axios.post('http://127.0.0.1:8000/api/signup/', {
-        username,
+        username: email,
         password,
         nickname,
         email,
       });
-
+  
       if (response.status === 201) {
         Alert.alert('회원가입 성공', '로그인 화면으로 이동합니다.');
         navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       } else {
-        Alert.alert('회원가입 실패', response.data?.error || '다시 시도해주세요.');
+        Alert.alert('회원가입 실패', '다시 시도해주세요.');
       }
     } catch (error: any) {
-      Alert.alert('회원가입 실패', error.response?.data?.error || '서버 오류');
+      const data = error.response?.data;
+      let message = '회원가입에 실패했습니다.';
+      if (data?.username) message = data.username[0];
+      else if (data?.password) message = data.password[0];
+      else if (data?.nickname) message = data.nickname[0];
+      else if (data?.email) message = data.email[0];
+  
+      Alert.alert('회원가입 오류', message);
     }
   };
-
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>회원가입</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="아이디 (예: user123)"
-        value={username}
-        onChangeText={setUsername}
+        placeholder="이메일 주소"
+        value={email}
+        onChangeText={setEmail}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
         style={styles.input}
@@ -65,14 +72,6 @@ const SignupScreen = () => {
         placeholder="닉네임"
         value={nickname}
         onChangeText={setNickname}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="이메일 (비밀번호 분실 시)"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
       />
 
       <Button title="가입하기" onPress={handleSignUp} />
