@@ -1,8 +1,7 @@
 from pathlib import Path
 import os
 
-OPENAI_API_KEY = "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"
-
+OPENAI_API_KEY = ""
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
