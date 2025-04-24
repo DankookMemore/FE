@@ -23,7 +23,6 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-# JWT 토큰 생성 함수
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -31,7 +30,6 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
-# 사용자 프로필 조회
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_profile(request):
@@ -42,7 +40,6 @@ def my_profile(request):
         'nickname': request.user.nickname,
     })
 
-# 로그인
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -52,15 +49,20 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
 
     if user is not None:
+        # ✅ JWT 토큰 발급
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
         return Response({
             'id': user.id,
             'username': user.username,
-            'nickname': user.nickname
+            'nickname': user.nickname,
+            'token': access_token  # ✅ 프론트에서 이걸 받아서 저장함
         })
     else:
-        return Response({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}, status=401)
 
-# 회원가입
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup_view(request):
@@ -94,6 +96,7 @@ def signup_view(request):
         return Response({'error': f'서버 오류: {str(e)}'}, status=500)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def reset_password_view(request):
     email = request.data.get('email')
     new_password = request.data.get('new_password')
@@ -109,7 +112,6 @@ def reset_password_view(request):
     except User.DoesNotExist:
         return Response({'error': '해당 이메일로 등록된 사용자가 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
     
-# GPT 요약
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def summarize_board_view(request, pk):
@@ -143,7 +145,6 @@ def summarize_board_view(request, pk):
         print("❌ GPT 요약 실패:", str(e))
         return Response({"summary": f"[요약 실패] {str(e)}"}, status=500)
 
-# ViewSets
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer

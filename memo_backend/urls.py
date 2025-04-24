@@ -3,6 +3,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('core.urls')),  # core 앱의 login/signup 포함
+    path('api/', include('core.urls')),
     path('api/', include('api.urls')),
 ]

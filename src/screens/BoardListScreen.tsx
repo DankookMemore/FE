@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useCallback } from 'react';
 import { RootStackParamList } from '../../App';
 
 type Board = {
@@ -23,6 +23,11 @@ type Board = {
   created_at: string;
 };
 
+const baseURL =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:8000'
+    : 'http://localhost:8000';
+
 const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [boards, setBoards] = useState<Board[]>([]);
@@ -32,6 +37,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
     useCallback(() => {
       const loadData = async () => {
         const token = await AsyncStorage.getItem('token');
+        console.log('📦 [useFocusEffect] 불러온 토큰:', token);
         if (!token) return;
         await fetchBoards(token);
       };
@@ -41,7 +47,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
 
   const fetchBoards = async (token: string) => {
     try {
-      const response = await axios.get('http://172.30.105.207:8000/api/boards/', {
+      const response = await axios.get(`${baseURL}/api/boards/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -54,7 +60,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
 
   const addBoard = async () => {
     Alert.alert('버튼 클릭됨');
-    console.log('🟢 보드 추가 버튼 눌림');
+    console.log('보드 추가 버튼 눌림');
   
     const title = newBoardName.trim();
     if (!title) {
@@ -68,15 +74,21 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
     }
   
     const token = await AsyncStorage.getItem('token');
+    console.log('[addBoard] 불러온 토큰:', token);
+  
     if (!token) {
-      console.log('❌ 토큰 없음, 로그인 필요');
+      console.log('토큰 없음, 로그인 필요');
       return;
     }
   
     try {
-      console.log('📤 axios 요청 시작');
+      console.log('axios 요청 시작');
+      console.log('요청 헤더:', {
+        Authorization: `Bearer ${token}`,
+      });
+  
       const response = await axios.post(
-        'http://172.20.10.2:8000/api/boards/',
+        `${baseURL}/api/boards/`,
         {
           title,
           category: '기본',
@@ -89,20 +101,22 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
           },
         }
       );
-      console.log('✅ 보드 추가 성공:', response.data);
+  
+      console.log('보드 추가 성공:', response.data);
       setBoards((prev) => [...prev, response.data]);
       setNewBoardName('');
     } catch (error: any) {
-      console.error('❌ axios 요청 실패:', error.message);
+      console.error('axios 요청 실패:', error.message);
       if (error.response) {
-        console.log('📛 응답 상태코드:', error.response.status);
-        console.log('📛 응답 데이터:', error.response.data);
+        console.log('응답 상태코드:', error.response.status);
+        console.log('응답 데이터:', error.response.data);
       } else {
-        console.log('📛 응답 없음 (네트워크 오류 등)');
+        console.log('응답 없음 (네트워크 오류 등)');
       }
       Alert.alert('보드 추가 실패', '서버와 통신할 수 없습니다.');
     }
-  }; // ⬅️ 함수 닫힘 누락 수정됨
+  };
+  
 
   const goToBoard = (boardId: number) => {
     navigation.navigate('MemoBoard', { folderId: boardId });
@@ -119,7 +133,7 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
 
     try {
       const response = await axios.post(
-        `http://172.30.105.207:8000/api/boards/${boardId}/summarize/`,
+        `${baseURL}/api/boards/${boardId}/summarize/`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

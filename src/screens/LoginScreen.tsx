@@ -10,6 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { baseURL } from '../config/baseURL';
 
 const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation();
@@ -18,7 +19,7 @@ const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void 
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/login/', {
+      const response = await axios.post(`${baseURL}/api/login/`, {
         username: email,
         password: password,
       });
@@ -31,7 +32,7 @@ const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void 
         await AsyncStorage.setItem('nickname', nickname);
 
         Alert.alert('로그인 성공', `${nickname}님 환영합니다!`);
-        setIsLoggedIn(true); // 🔥 핵심 부분: App.tsx 상태 갱신
+        setIsLoggedIn(true);
       }
     } catch (error: any) {
       Alert.alert('로그인 실패', error.response?.data?.error || '서버 오류');

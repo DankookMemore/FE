@@ -1,11 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-# ❌ get_user_model이나 User import 하지 말 것
-
 class User(AbstractUser):
     nickname = models.CharField(max_length=30)
-    email = models.EmailField(unique=True)  # 중복 방지
+    email = models.EmailField(unique=True)
 
 class Board(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

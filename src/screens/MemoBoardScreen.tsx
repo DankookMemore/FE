@@ -33,7 +33,7 @@ const MemoBoardScreen = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`http://localhost:8000/api/boards/${folderId}/`, {
+      const response = await axios.get(`http://172.20.10.2:8000/api/boards/${folderId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBoardTitle(response.data.title);
@@ -47,7 +47,7 @@ const MemoBoardScreen = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`http://localhost:8000/api/memos/?board=${folderId}`, {
+      const response = await axios.get(`http://172.20.10.2:8000/api/memos/?board=${folderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMemos(response.data);
