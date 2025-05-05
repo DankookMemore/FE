@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
@@ -24,12 +25,22 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkToken = async () => {
+    const initialize = async () => {
+      await Notifications.requestPermissionsAsync();
+
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        }),
+      });
+
       const token = await AsyncStorage.getItem('token');
       setIsLoggedIn(!!token);
     };
 
-    checkToken();
+    initialize();
   }, []);
 
   if (isLoggedIn === null) {
@@ -55,7 +66,9 @@ const App = () => {
             <Stack.Screen name="Login">
               {(props) => <LoginScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
             </Stack.Screen>
-            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="Signup">
+              {(props) => <SignupScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
+            </Stack.Screen>
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         )}

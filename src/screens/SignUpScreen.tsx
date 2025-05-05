@@ -8,9 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const SignupScreen = () => {
+const SignupScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,18 +22,40 @@ const SignupScreen = () => {
       Alert.alert('오류', '모든 항목을 입력해주세요.');
       return;
     }
-  
+
     try {
-      const response = await axios.post('http://172.20.10.2:8000/api/signup/', {
+      const response = await axios.post('http://192.168.45.170:8000/api/signup/', {
         username: email,
         password,
         nickname,
         email,
       });
-  
+
       if (response.status === 201) {
-        Alert.alert('회원가입 성공', '로그인 화면으로 이동합니다.');
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        Alert.alert('회원가입 성공', '자동 로그인 중입니다...');
+
+        const loginResponse = await axios.post('http://192.168.45.170:8000/api/login/', {
+          username: email,
+          password,
+        });
+
+        if (loginResponse.status === 200) {
+          const { token, id, nickname } = loginResponse.data;
+
+          await AsyncStorage.setItem('token', token);
+          await AsyncStorage.setItem('userId', id.toString());
+          await AsyncStorage.setItem('nickname', nickname);
+
+          setIsLoggedIn(true);
+
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'BoardList' }],
+          });
+        } else {
+          Alert.alert('로그인 실패', '회원가입 후 자동 로그인에 실패했습니다.');
+          navigation.navigate('Login');
+        }
       } else {
         Alert.alert('회원가입 실패', '다시 시도해주세요.');
       }
@@ -43,11 +66,11 @@ const SignupScreen = () => {
       else if (data?.password) message = data.password[0];
       else if (data?.nickname) message = data.nickname[0];
       else if (data?.email) message = data.email[0];
-  
+
       Alert.alert('회원가입 오류', message);
     }
   };
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>회원가입</Text>

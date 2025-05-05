@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,11 @@ import {
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as Notifications from 'expo-notifications';
 import { RootStackParamList } from '../../App';
+
+const baseURL =
+  Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
 
 type Board = {
   id: number;
@@ -21,23 +25,47 @@ type Board = {
   summary: string;
   is_completed: boolean;
   created_at: string;
+  hasAlarm?: boolean;
 };
-
-const baseURL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:8000'
-    : 'http://localhost:8000';
 
 const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [boards, setBoards] = useState<Board[]>([]);
   const [newBoardName, setNewBoardName] = useState('');
 
+  useEffect(() => {
+    const checkAlarms = async () => {
+      const alarmsJson = await AsyncStorage.getItem('alarms');
+      const alarms = alarmsJson ? JSON.parse(alarmsJson) : {};
+      const now = Date.now();
+      setBoards(prevBoards =>
+        prevBoards.map(board => {
+          const alarmTime = alarms[board.id];
+          return {
+            ...board,
+            hasAlarm: alarmTime && now > alarmTime,
+          };
+        })
+      );
+    };
+
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const boardId = notification.request.content.data?.boardId;
+      if (boardId) {
+        setBoards((prev) =>
+          prev.map((b) => (b.id === boardId ? { ...b, hasAlarm: true } : b))
+        );
+      }
+    });
+
+    checkAlarms();
+    return () => subscription.remove();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
         const token = await AsyncStorage.getItem('token');
-        console.log('📦 [useFocusEffect] 불러온 토큰:', token);
         if (!token) return;
         await fetchBoards(token);
       };
@@ -52,41 +80,32 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
           Authorization: `Bearer ${token}`,
         },
       });
-      setBoards(response.data);
+      const alarmsJson = await AsyncStorage.getItem('alarms');
+      const alarms = alarmsJson ? JSON.parse(alarmsJson) : {};
+      const now = Date.now();
+      const boardsWithAlarms = response.data.map((board: Board) => ({
+        ...board,
+        hasAlarm: alarms[board.id] && now > alarms[board.id],
+      }));
+      setBoards(boardsWithAlarms);
     } catch (error) {
       console.error('보드 불러오기 실패:', error);
     }
   };
 
   const addBoard = async () => {
-    Alert.alert('버튼 클릭됨');
-    console.log('보드 추가 버튼 눌림');
-  
     const title = newBoardName.trim();
-    if (!title) {
-      console.log('❗️제목 없음으로 종료');
-      return;
-    }
-  
+    if (!title) return;
+
     if (boards.find((b) => b.title === title)) {
       Alert.alert('중복된 보드 이름입니다.');
       return;
     }
-  
+
     const token = await AsyncStorage.getItem('token');
-    console.log('[addBoard] 불러온 토큰:', token);
-  
-    if (!token) {
-      console.log('토큰 없음, 로그인 필요');
-      return;
-    }
-  
+    if (!token) return;
+
     try {
-      console.log('axios 요청 시작');
-      console.log('요청 헤더:', {
-        Authorization: `Bearer ${token}`,
-      });
-  
       const response = await axios.post(
         `${baseURL}/api/boards/`,
         {
@@ -101,22 +120,13 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
           },
         }
       );
-  
-      console.log('보드 추가 성공:', response.data);
       setBoards((prev) => [...prev, response.data]);
       setNewBoardName('');
     } catch (error: any) {
       console.error('axios 요청 실패:', error.message);
-      if (error.response) {
-        console.log('응답 상태코드:', error.response.status);
-        console.log('응답 데이터:', error.response.data);
-      } else {
-        console.log('응답 없음 (네트워크 오류 등)');
-      }
       Alert.alert('보드 추가 실패', '서버와 통신할 수 없습니다.');
     }
   };
-  
 
   const goToBoard = (boardId: number) => {
     navigation.navigate('MemoBoard', { folderId: boardId });
@@ -164,7 +174,10 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
             onPress={() => goToBoard(item.id)}
             onLongPress={() => summarizeBoard(item.id)}
           >
-            <Text style={styles.boardText}>{item.title}</Text>
+            <View style={styles.boardRowContent}>
+              <Text style={styles.boardText}>{item.title}</Text>
+              {item.hasAlarm && <View style={styles.redDot} />}
+            </View>
           </TouchableOpacity>
         )}
       />
@@ -181,6 +194,8 @@ const BoardListScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => v
     </View>
   );
 };
+
+export default BoardListScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
@@ -209,8 +224,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#ddd',
   },
+  boardRowContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   boardText: {
     fontSize: 18,
+  },
+  redDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'red',
+    marginLeft: 10,
   },
   addButton: {
     backgroundColor: '#88c0d0',
@@ -224,5 +251,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-export default BoardListScreen;

@@ -7,7 +7,9 @@ import {
   TextInput,
   Button,
   Alert,
+  Platform
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -22,6 +24,12 @@ const MemoBoardScreen = () => {
   const [boardTitle, setBoardTitle] = useState('');
   const [isInputDisabled, setIsInputDisabled] = useState(false);
   const [summaryText, setSummaryText] = useState(null);
+  const [reminderHours, setReminderHours] = useState('0');
+  const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [alarmConfigured, setAlarmConfigured] = useState(false);
+  const [alarmSetTime, setAlarmSetTime] = useState(null);
+
+  const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
 
   useEffect(() => {
     fetchBoardTitle();
@@ -33,7 +41,7 @@ const MemoBoardScreen = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`http://172.20.10.2:8000/api/boards/${folderId}/`, {
+      const response = await axios.get(`${BASE_URL}/api/boards/${folderId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBoardTitle(response.data.title);
@@ -47,7 +55,7 @@ const MemoBoardScreen = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`http://172.20.10.2:8000/api/memos/?board=${folderId}`, {
+      const response = await axios.get(`${BASE_URL}/api/memos/?board=${folderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMemos(response.data);
@@ -58,7 +66,39 @@ const MemoBoardScreen = () => {
     }
   };
 
+  const scheduleReminder = async (hours, minutes) => {
+    const message = `알림 설정됨: ${hours}시간 ${minutes}분 후`;
+    Alert.alert('🔔 알림 테스트 (웹용)', message);
+  };
+
+  const saveReminderSetting = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+
+    const reminderTime = new Date(Date.now() + (parseInt(reminderHours) * 60 + parseInt(reminderMinutes)) * 60 * 1000);
+
+    try {
+      await axios.post(
+        `${BASE_URL}/api/boards/${folderId}/set-alarm/`,
+        { reminder_time: reminderTime.toISOString() },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setAlarmConfigured(true);
+      setAlarmSetTime(Date.now());
+      Alert.alert('알림 설정이 저장되었습니다.');
+    } catch (error) {
+      console.error('알림 설정 실패:', error);
+      Alert.alert('알림 저장 실패', '서버 오류로 인해 저장하지 못했습니다.');
+    }
+  };
+
   const addMemo = async () => {
+    console.log("🛠️ 메모 추가 시도됨");
+
     const content = newMemo.trim();
     if (!content || isInputDisabled) return;
 
@@ -67,7 +107,7 @@ const MemoBoardScreen = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/memos/',
+        `${BASE_URL}/api/memos/`,
         {
           board: folderId,
           content,
@@ -79,6 +119,17 @@ const MemoBoardScreen = () => {
       );
       setMemos((prev) => [...prev, response.data]);
       setNewMemo('');
+
+      const hours = parseInt(reminderHours) || 0;
+      const minutes = parseInt(reminderMinutes) || 0;
+
+      if (alarmConfigured && alarmSetTime && Date.now() > alarmSetTime) {
+        if (hours > 0 || minutes > 0) {
+          await scheduleReminder(hours, minutes);
+        }
+        setAlarmConfigured(false);
+        setAlarmSetTime(null);
+      }
     } catch (error) {
       console.error('메모 추가 실패:', error);
     }
@@ -90,7 +141,7 @@ const MemoBoardScreen = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:8000/api/boards/${folderId}/summarize/`,
+        `${BASE_URL}/api/boards/${folderId}/summarize/`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -106,9 +157,31 @@ const MemoBoardScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={styles.headerRow}>
         <Text style={styles.title}>📝 보드: {boardTitle}</Text>
-        <Button title="보드 목록" onPress={() => navigation.goBack()} />
+        <View style={styles.rightHeaderGroup}>
+          <View style={styles.alarmSettingRow}>
+            <Text>({reminderHours}시 {reminderMinutes}분 후에 알림)</Text>
+            <Picker
+              selectedValue={reminderHours}
+              style={styles.picker}
+              onValueChange={(itemValue) => setReminderHours(itemValue)}>
+              {Array.from({ length: 24 }, (_, i) => (
+                <Picker.Item key={i} label={`${i}`} value={`${i}`} />
+              ))}
+            </Picker>
+            <Picker
+              selectedValue={reminderMinutes}
+              style={styles.picker}
+              onValueChange={(itemValue) => setReminderMinutes(itemValue)}>
+              {Array.from({ length: 60 }, (_, i) => (
+                <Picker.Item key={i} label={`${i}`} value={`${i}`} />
+              ))}
+            </Picker>
+            <Button title="저장" onPress={saveReminderSetting} />
+          </View>
+          <Button title="보드 목록" onPress={() => navigation.goBack()} />
+        </View>
       </View>
 
       <FlatList
@@ -127,7 +200,6 @@ const MemoBoardScreen = () => {
         )}
       />
 
-
       {summaryText && (
         <View style={styles.summaryBox}>
           <Text style={styles.summaryLabel}>📌 전체 요약:</Text>
@@ -142,7 +214,8 @@ const MemoBoardScreen = () => {
         placeholder="새 메모 입력"
         editable={!isInputDisabled}
       />
-      <Button title="메모 추가" onPress={addMemo} disabled={isInputDisabled} />
+
+      <Button title="메모 추가" onPress={addMemo} disabled={false} />
       <Button title="정리하기" onPress={summarizeBoard} disabled={isInputDisabled} />
     </View>
   );
@@ -152,13 +225,18 @@ export default MemoBoardScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     marginBottom: 12,
   },
   title: { fontSize: 20, fontWeight: 'bold' },
+  rightHeaderGroup: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -166,6 +244,16 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 16,
     marginBottom: 8,
+  },
+  alarmSettingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  picker: {
+    height: 40,
+    width: 80,
   },
   memoBox: {
     padding: 12,

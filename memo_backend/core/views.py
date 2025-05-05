@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
+from django.db import models
 
 from .models import Board, Memo, User
 from .serializers import UserSerializer, BoardSerializer, MemoSerializer
@@ -57,7 +58,7 @@ def login_view(request):
             'id': user.id,
             'username': user.username,
             'nickname': user.nickname,
-            'token': access_token  # ✅ 프론트에서 이걸 받아서 저장함
+            'token': access_token
         })
     else:
         return Response({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}, status=401)
@@ -128,7 +129,7 @@ def summarize_board_view(request, pk):
             messages=[
                 {
                     "role": "user",
-                    "content": f"다음은 아이디어 메모입니다. 전체 흐름을 고려하여 한 문단으로 핵심만 간결하게 요약해주세요:\n\n{all_text}"
+                    "content": f"다음은 아이디어 메모입니다. 전체 흐름을 고려하여 아이디어 내용을 주제와 아이디어에 대한 생각을 나눠서 정리해주세요:\n\n{all_text}"
                 }
             ],
             max_tokens=300,
@@ -151,6 +152,7 @@ class BoardViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user']
+    reminder_time = models.DateTimeField(null=True, blank=True)
 
     def get_queryset(self):
         user = self.request.user
@@ -185,3 +187,15 @@ class MemoViewSet(viewsets.ModelViewSet):
         print("🙋 request.user:", self.request.user)
         print("🙋 request.auth:", self.request.auth)
         serializer.save(user=self.request.user)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_board_alarm(request, pk):
+    print(f"📥 알림 설정 요청: user={request.user}, board_id={pk}, data={request.data}")
+    board = get_object_or_404(Board, pk=pk, user=request.user)
+    reminder_time = request.data.get('reminder_time')
+    if reminder_time:
+        board.reminder_time = reminder_time
+        board.save()
+        return Response({"status": "알림 저장 완료"})
+    return Response({"error": "알림 시각이 없습니다"}, status=400)

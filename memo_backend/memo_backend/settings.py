@@ -1,10 +1,6 @@
 from pathlib import Path
 import os
 
-OPENAI_API_KEY = "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"
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = 'django-insecure-v%elj5h(l*p_6!y6vk!e+^!s=cv$ty8mdbrce$=@j-(wzd$wtn'
 
 DEBUG = True
 
@@ -106,3 +102,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'core.backends.EmailBackend',
+]
