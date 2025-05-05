@@ -21,8 +21,3 @@
 =======
 # Dankook_MEMORE
 아이디어 메모 및 요약 서비스 입니다.
->>>>>>> b3e6c2dfd4d06ba2b6f926b12a3661f1d297c41d
-"# Dankook_MEMORE" 
-"# Dankook_MEMORE" 
-"# Dankook_MEMORE" 
-"# Dankook_MEMORE" 
