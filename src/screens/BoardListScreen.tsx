@@ -17,7 +17,7 @@ import { RootStackParamList } from '../../App';
 import { styles } from './BoardListScreen.styles';
 
 const baseURL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://172.30.27.137:8000';
+  Platform.OS === 'android' ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 type Board = { id: number; title: string };
 
@@ -41,13 +41,13 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
         try {
           const [bRes, fRes, sRes, rRes] = await Promise.all([
             axios.get<Board[]>(`${baseURL}/api/boards/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ username: string }[]>(`${baseURL}/api/list_following/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ boards: Board[] }>(`${baseURL}/api/following_content/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ from_username: string }[]>(`${baseURL}/api/follow_requests/`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get<{ username: string }[]>(`${baseURL}/api/allfollower/`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get<{ boards: Board[] }>(`${baseURL}/api/following-content/`, { headers: { Authorization: `Bearer ${token}` } }),
+            //axios.get<{ from_username: string }[]>(`${baseURL}/api/follow_requests/`, { headers: { Authorization: `Bearer ${token}` } }),
           ]);
           setBoards(bRes.data);
           setFollowingList(fRes.data.map(u => u.username));
-          setSharedBoards(prev => [...prev, ...sRes.data.boards]);
+          setSharedBoards([{ id: 0, title: '사용방법' }, ...sRes.data.boards]);
           setFollowRequests(rRes.data.map(r => r.from_username));
         } catch (e) {
           console.error(e);

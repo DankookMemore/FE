@@ -23,25 +23,33 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
   const [nickname, setNickname] = useState('');
 
   const handleSignUp = async () => {
-    Alert.alert('handleSignUp 호출됨');
     if (!email || !password || !confirmPassword || !nickname) {
       Alert.alert('오류', '모든 항목을 입력해주세요.');
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
       return;
     }
+
     try {
-      const response = await axios.post('http://192.168.45.170:8000/api/signup/', {
+      const response = await axios.post('http://localhost:8000/api/signup/', {
         username: email,
         password,
+        password2: confirmPassword,
         nickname,
         email,
       });
+
       if (response.status === 201) {
         Alert.alert('회원가입 성공', '자동 로그인 중입니다...');
-        const loginRes = await axios.post('http://192.168.45.170:8000/api/login/', { username: email, password });
+
+        const loginRes = await axios.post('http://localhost:8000/api/login/', {
+          username: email,
+          password,
+        });
+
         if (loginRes.status === 200) {
           const { token, id, nickname } = loginRes.data;
           await AsyncStorage.setItem('token', token);
@@ -53,16 +61,17 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
           Alert.alert('로그인 실패', '자동 로그인에 실패했습니다.');
           navigation.navigate('Login');
         }
-      } else {
-        Alert.alert('회원가입 실패', '다시 시도해주세요.');
       }
     } catch (error: any) {
       const data = error.response?.data;
-      let message = '회원가입에 실패했습니다.';
-      if (data?.username) message = data.username[0];
-      else if (data?.password) message = data.password[0];
-      else if (data?.nickname) message = data.nickname[0];
-      else if (data?.email) message = data.email[0];
+      const message =
+        data?.error_message ||
+        data?.error ||
+        data?.username?.[0] ||
+        data?.password?.[0] ||
+        data?.nickname?.[0] ||
+        data?.email?.[0] ||
+        '회원가입에 실패했습니다.';
       Alert.alert('회원가입 오류', message);
     }
   };

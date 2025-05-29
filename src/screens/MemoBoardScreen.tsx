@@ -18,7 +18,7 @@ import { styles } from './MemoBoardScreen.styles';
 const BASE_URL =
   Platform.OS === 'android'
     ? 'http://10.0.2.2:8000'
-    : 'http://localhost:8081';
+    : 'http://localhost:8000';
 
 type Memo = {
   id: number;
@@ -27,7 +27,7 @@ type Memo = {
   is_finished: boolean;
 };
 
-const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setIsLoggedIn }) => {
+const MemoBoardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<{ params: { folderId: number } }>();
   const { folderId } = route.params;
@@ -50,9 +50,10 @@ const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
         `${BASE_URL}/api/boards/${folderId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setBoardTitle(response.data.title);
+      setBoardTitle(response.data.title ?? '제목 없음');
     } catch (error) {
       console.error('보드 제목 불러오기 실패:', error);
+      setBoardTitle('불러오기 실패');
     }
   };
 
@@ -105,29 +106,13 @@ const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     }
   };
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    setIsLoggedIn(false);
-  };
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>📝</Text>
-        <TouchableOpacity onPress={handleLogout}>
-          <Text style={styles.logout}>로그아웃</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 보드 이름 */}
-      <View style={styles.boardNameContainer}>
-        <Text style={styles.boardName}>{boardTitle}</Text>
+        <Text style={styles.title}>📝 {boardTitle}</Text>
       </View>
 
       <FlatList
