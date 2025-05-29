@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  createNativeStackNavigator,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
@@ -19,15 +22,16 @@ export type RootStackParamList = {
   MemoBoard: { folderId: number };
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<RootStackParamList>();
+const AppStack  = createNativeStackNavigator<RootStackParamList>();
 
-const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [checkingLogin, setCheckingLogin] = useState<boolean>(true);
 
   useEffect(() => {
     const initialize = async () => {
       await Notifications.requestPermissionsAsync();
-
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowAlert: true,
@@ -38,14 +42,14 @@ const App = () => {
 
       const token = await AsyncStorage.getItem('token');
       setIsLoggedIn(!!token);
+      setCheckingLogin(false);
     };
-
     initialize();
   }, []);
 
-  if (isLoggedIn === null) {
+  if (checkingLogin) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
         <ActivityIndicator size="large" color="#89b0ae" />
       </View>
     );
@@ -53,28 +57,30 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          <>
-            <Stack.Screen name="BoardList">
-              {(props) => <BoardListScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
-            </Stack.Screen>
-            <Stack.Screen name="MemoBoard" component={MemoBoardScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Login">
-              {(props) => <LoginScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
-            </Stack.Screen>
-            <Stack.Screen name="Signup">
-              {(props) => <SignupScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
-            </Stack.Screen>
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-          </>
-        )}
-      </Stack.Navigator>
+      {isLoggedIn ? (
+        <AppStack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName="BoardList"
+        >
+          <AppStack.Screen name="BoardList">
+            {props => <BoardListScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
+          </AppStack.Screen>
+          <AppStack.Screen name="MemoBoard" component={MemoBoardScreen} />
+        </AppStack.Navigator>
+      ) : (
+        <AuthStack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName="Login"
+        >
+          <AuthStack.Screen name="Login">
+            {props => <LoginScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
+          </AuthStack.Screen>
+          <AuthStack.Screen name="Signup">
+            {props => <SignupScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
+          </AuthStack.Screen>
+          <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </AuthStack.Navigator>
+      )}
     </NavigationContainer>
   );
-};
-
-export default App;
+}

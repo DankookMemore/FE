@@ -1,28 +1,37 @@
+// SignupScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  Button,
-  StyleSheet,
+  TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { RootStackParamList } from '../../App';
+import { styles } from './SignupScreen.styles';
 
-const SignupScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
-  const navigation = useNavigation();
+const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setIsLoggedIn }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
 
   const handleSignUp = async () => {
-    if (!email || !password || !nickname) {
+    Alert.alert('handleSignUp 호출됨');
+    if (!email || !password || !confirmPassword || !nickname) {
       Alert.alert('오류', '모든 항목을 입력해주세요.');
       return;
     }
-
+    if (password !== confirmPassword) {
+      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+      return;
+    }
     try {
       const response = await axios.post('http://192.168.45.170:8000/api/signup/', {
         username: email,
@@ -30,30 +39,18 @@ const SignupScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void
         nickname,
         email,
       });
-
       if (response.status === 201) {
         Alert.alert('회원가입 성공', '자동 로그인 중입니다...');
-
-        const loginResponse = await axios.post('http://192.168.45.170:8000/api/login/', {
-          username: email,
-          password,
-        });
-
-        if (loginResponse.status === 200) {
-          const { token, id, nickname } = loginResponse.data;
-
+        const loginRes = await axios.post('http://192.168.45.170:8000/api/login/', { username: email, password });
+        if (loginRes.status === 200) {
+          const { token, id, nickname } = loginRes.data;
           await AsyncStorage.setItem('token', token);
           await AsyncStorage.setItem('userId', id.toString());
           await AsyncStorage.setItem('nickname', nickname);
-
           setIsLoggedIn(true);
-
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'BoardList' }],
-          });
+          navigation.reset({ index: 0, routes: [{ name: 'BoardList' }] });
         } else {
-          Alert.alert('로그인 실패', '회원가입 후 자동 로그인에 실패했습니다.');
+          Alert.alert('로그인 실패', '자동 로그인에 실패했습니다.');
           navigation.navigate('Login');
         }
       } else {
@@ -66,53 +63,58 @@ const SignupScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void
       else if (data?.password) message = data.password[0];
       else if (data?.nickname) message = data.nickname[0];
       else if (data?.email) message = data.email[0];
-
       Alert.alert('회원가입 오류', message);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>회원가입</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="이메일 주소"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="비밀번호"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="닉네임"
-        value={nickname}
-        onChangeText={setNickname}
-      />
-
-      <Button title="가입하기" onPress={handleSignUp} />
-      <View style={{ height: 16 }} />
-      <Button title="뒤로가기" onPress={() => navigation.goBack()} />
-    </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.card}>
+        <Text style={styles.title}>회원가입</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="이메일 주소"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="비밀번호"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="비밀번호 확인"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="닉네임"
+          placeholderTextColor="#aaa"
+          value={nickname}
+          onChangeText={setNickname}
+        />
+        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+          <Text style={styles.buttonText}>가입하기</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.goBack()}>
+          <Text style={styles.linkText}>뒤로가기</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
-  title: { fontSize: 24, textAlign: 'center', marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    padding: 12,
-    marginBottom: 12,
-    borderRadius: 8,
-  },
-});
 
 export default SignupScreen;
