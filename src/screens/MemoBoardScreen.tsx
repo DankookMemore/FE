@@ -29,16 +29,18 @@ type Memo = {
 
 const MemoBoardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute<{ params: { folderId: number } }>();
-  const { folderId } = route.params;
+  const route = useRoute<{ params: { folderId: number; boardTitle?: string; isGuide?: boolean } }>();
+  const { folderId, boardTitle: routeBoardTitle, isGuide } = route.params;
 
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newMemo, setNewMemo] = useState('');
-  const [boardTitle, setBoardTitle] = useState('');
+  const [boardTitle, setBoardTitle] = useState(routeBoardTitle || '');
   const [summaryText, setSummaryText] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchBoardTitle();
+    if (!isGuide) {
+      fetchBoardTitle();
+    }
     fetchMemos();
   }, []);
 
@@ -60,14 +62,26 @@ const MemoBoardScreen: React.FC = () => {
   const fetchMemos = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/api/memos/?board=${folderId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMemos(response.data);
-    } catch (error) {
-      console.error('메모 불러오기 실패:', error);
+
+    if (folderId === 0 && isGuide) {
+      setMemos([
+        {
+          id: 0,
+          timestamp: new Date().toISOString(),
+          is_finished: false,
+          content: `📌 여기는 사용방법 보드입니다.\n\n1. 아이디어 메모에는 다양한 아이디어가 제시되어 있음을 알 수 있다.\n2. 각각의 숫자 조합은 서로 다른 아이디어를 나타내고 있을 가능성이 있다.\n3. 이러한 아이디어들은 개별적으로 고려되었지만, 전체 흐름을 고려하여 유기적으로 연결될 수 있다.\n4. 아이디어를 발전시키고 구체화하기 위해서는 각각의 아이디어를 깊게 고민하고, 상호작용하며 발전시킬 필요가 있다.\n5. 이러한 아이디어 메모는 창의적인 아이디어 발굴과 혁신적인 발전을 이끌어낼 수 있는 중요한 자원이 될 수 있다.`,
+        },
+      ]);
+    } else {
+      try {
+        const response = await axios.get(
+          `${BASE_URL}/api/memos/?board=${folderId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setMemos(response.data);
+      } catch (error) {
+        console.error('메모 불러오기 실패:', error);
+      }
     }
   };
 
@@ -76,6 +90,12 @@ const MemoBoardScreen: React.FC = () => {
     if (!content) return;
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
+
+    if (folderId === 0 && isGuide) {
+      Alert.alert('사용방법 보드에서는 메모를 추가할 수 없습니다.');
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${BASE_URL}/api/memos/`,
@@ -93,6 +113,12 @@ const MemoBoardScreen: React.FC = () => {
   const summarizeBoard = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
+
+    if (folderId === 0 && isGuide) {
+      Alert.alert('사용방법 보드는 요약 기능이 제공되지 않습니다.');
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${BASE_URL}/api/boards/${folderId}/summarize/`,
@@ -144,6 +170,7 @@ const MemoBoardScreen: React.FC = () => {
         placeholderTextColor="#aaa"
         value={newMemo}
         onChangeText={setNewMemo}
+        editable={!(folderId === 0 && isGuide)}
       />
       <TouchableOpacity style={styles.addButton} onPress={addMemo}>
         <Text style={styles.addButtonText}>메모 추가</Text>
