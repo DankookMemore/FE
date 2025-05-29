@@ -9,14 +9,15 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { baseURL } from '../config/baseURL';
 import { styles } from './LoginScreen.styles';
+import { RootStackParamList } from '../../App';
 
-const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
-  const navigation = useNavigation();
+const LoginScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setIsLoggedIn }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -24,7 +25,7 @@ const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void 
     try {
       const response = await axios.post(`${baseURL}/api/login/`, {
         username: email,
-        password: password,
+        password,
       });
 
       if (response.status === 200) {

@@ -15,9 +15,10 @@ import axios from 'axios';
 import { RootStackParamList } from '../../App';
 import { styles } from './MemoBoardScreen.styles';
 
-const BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8000'
-  : 'http://localhost:8081';
+const BASE_URL =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:8000'
+    : 'http://localhost:8081';
 
 type Memo = {
   id: number;
@@ -45,9 +46,10 @@ const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
     try {
-      const response = await axios.get(`${BASE_URL}/api/boards/${folderId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${BASE_URL}/api/boards/${folderId}/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setBoardTitle(response.data.title);
     } catch (error) {
       console.error('보드 제목 불러오기 실패:', error);
@@ -58,9 +60,10 @@ const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
     try {
-      const response = await axios.get(`${BASE_URL}/api/memos/?board=${folderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${BASE_URL}/api/memos/?board=${folderId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setMemos(response.data);
     } catch (error) {
       console.error('메모 불러오기 실패:', error);
@@ -113,10 +116,18 @@ const MemoBoardScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>📝 {boardTitle}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>📝</Text>
         <TouchableOpacity onPress={handleLogout}>
           <Text style={styles.logout}>로그아웃</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* 보드 이름 */}
+      <View style={styles.boardNameContainer}>
+        <Text style={styles.boardName}>{boardTitle}</Text>
       </View>
 
       <FlatList

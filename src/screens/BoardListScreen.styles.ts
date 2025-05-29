@@ -30,14 +30,26 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    flexWrap: 'wrap', // 추가: 요소가 넘칠 때 줄바꿈 허용
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // 요소 간 간격 추가
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#6b4226', // 따뜻한 브라운
   },
-  logout: {
+  subtitle: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#6b4226',
+    marginBottom: 4,
+  },
+  logout: {
+    fontSize: 12, // 글씨 크기 줄임
     color: 'red',
   },
   boardRow: {
@@ -55,15 +67,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   boardText: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#333',
-  },
-  redDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'red',
-    marginLeft: 10,
   },
   input: {
     borderWidth: 1,
@@ -84,7 +89,41 @@ export const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#1b1b1b',
-    fontSize: 16,
+    fontSize: 12, // 글씨 크기 줄임
     fontWeight: 'bold',
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.64)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '30%',
+    maxHeight: '60%',
+  },
+  searchInput: {
+    width: '30%', // 검색 입력 길이 조정
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#fdfdfd',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  searchButton: {
+    marginLeft: 8,
+  },
+  searchResults: {
+    maxHeight: 100,
+    marginTop: 8,
+  },
+  sectionContainer: {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 8,
+  padding: 8,
+  marginBottom: 12,
+},
 });

@@ -17,10 +17,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  backButton: {
+    fontSize: 18,
+    marginRight: 12,
+    color: '#6b4226',
+  },
   title: {
+    flex: 1,
     fontSize: 20,
     fontWeight: 'bold',
     color: '#6b4226',
+    textAlign: 'center',
   },
   logout: {
     color: 'red',
@@ -77,7 +84,7 @@ export const styles = StyleSheet.create({
   },
   summaryButton: {
     width: contentWidth,
-    backgroundColor: '#deb887', 
+    backgroundColor: '#deb887',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
