@@ -4,13 +4,16 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { baseURL } from '../config/baseURL';
+import { styles } from './LoginScreen.styles';
 
 const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void }) => {
   const navigation = useNavigation();
@@ -40,87 +43,51 @@ const LoginScreen = ({ setIsLoggedIn }: { setIsLoggedIn: (val: boolean) => void 
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>MEMO-RE</Text>
-
-      <TextInput
-        placeholder="이메일 아이디"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
-      <TextInput
-        placeholder="비밀번호"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.container}
+    >
+      <Image
+        source={require('../../assets/Login_background.jpg')}
+        style={styles.backgroundImage}
       />
 
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>로그인</Text>
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <Text style={styles.logo}>MEMO-RE</Text>
 
-      <View style={styles.linkContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.linkText}>회원가입</Text>
+        <TextInput
+          placeholder="이메일 아이디"
+          placeholderTextColor="#ccc"
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+        />
+        <TextInput
+          placeholder="비밀번호"
+          placeholderTextColor="#ccc"
+          secureTextEntry
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>로그인</Text>
         </TouchableOpacity>
-        <Text style={styles.separator}>|</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={styles.linkText}>비밀번호 찾기</Text>
-        </TouchableOpacity>
+
+        <View style={styles.linkContainer}>
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <Text style={styles.linkText}>회원가입</Text>
+          </TouchableOpacity>
+          <Text style={styles.separator}>|</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.linkText}>비밀번호 찾기</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 export default LoginScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 32,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  logo: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    alignSelf: 'center',
-    marginBottom: 40,
-    color: '#89b0ae',
-  },
-  input: {
-    height: 48,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#f8f8f8',
-  },
-  loginButton: {
-    backgroundColor: '#89b0ae',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  linkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  linkText: {
-    color: '#89b0ae',
-    fontWeight: '600',
-    paddingHorizontal: 10,
-  },
-  separator: {
-    color: '#ccc',
-  },
-});
