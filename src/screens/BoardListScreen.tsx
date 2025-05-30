@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { RootStackParamList } from '../../App';
 import { styles } from './BoardListScreen.styles';
 
@@ -21,10 +20,22 @@ const baseURL =
 
 type Board = { id: number; title: string; category?: string };
 
+type Memo = {
+  id: number;
+  board: number;
+  content: string;
+  timestamp: string;
+  is_finished: boolean;
+  summary?: string | null;
+  user: string;
+};
+
+
 const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [boards, setBoards] = useState<Board[]>([]);
   const [sharedBoards, setSharedBoards] = useState<Board[]>([{ id: 0, title: '사용방법' }]);
+  const [sharedMemos, setSharedMemos] = useState<Memo[]>([]);
   const [newBoardName, setNewBoardName] = useState('');
 
   const [showFollowModal, setShowFollowModal] = useState(false);
@@ -33,26 +44,33 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
   const [followingList, setFollowingList] = useState<string[]>([]);
   const [followRequests, setFollowRequests] = useState<string[]>([]);
 
+  const loadAll = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      const [bRes, fRes, sRes, rRes] = await Promise.all([
+        fetch(`${baseURL}/api/boards/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${baseURL}/api/neighbor/list/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${baseURL}/api/neighbor/content/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${baseURL}/api/neighbor/requests/`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const boards = await bRes.json();
+      const followings = await fRes.json();
+      const shared = await sRes.json();
+      const requests = await rRes.json();
+
+      setBoards(boards);
+      setFollowingList(followings.map((u: any) => u.username));
+      setSharedBoards([{ id: 0, title: '사용방법' }, ...shared.boards]);
+      setSharedMemos(shared.memos);
+      setFollowRequests(requests.map((u: any) => u.username));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const loadAll = async () => {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) return;
-        try {
-          const [bRes, fRes, sRes, rRes] = await Promise.all([
-            axios.get<Board[]>(`${baseURL}/api/boards/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ username: string }[]>(`${baseURL}/api/neighbor/list/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ boards: Board[]; memos: any[] }>(`${baseURL}/api/neighbor/content/`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get<{ username: string }[]>(`${baseURL}/api/neighbor/requests/`, { headers: { Authorization: `Bearer ${token}` } }),
-          ]);
-          setBoards(bRes.data);
-          setFollowingList(fRes.data.map(u => u.username));
-          setSharedBoards([{ id: 0, title: '사용방법' }, ...sRes.data.boards]);
-          setFollowRequests(rRes.data.map(u => u.username));
-        } catch (e) {
-          console.error(e);
-        }
-      };
       loadAll();
     }, [])
   );
@@ -62,8 +80,15 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     if (!token) return;
     try {
       const url = accept ? `${baseURL}/api/neighbor/accept/` : `${baseURL}/api/neighbor/cancel/`;
-      await axios.post(url, { username }, { headers: { Authorization: `Bearer ${token}` } });
-      setFollowRequests(prev => prev.filter(u => u !== username));
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username }),
+      });
+      await loadAll();
     } catch (e) {
       console.error(e);
     }
@@ -73,11 +98,11 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     const token = await AsyncStorage.getItem('token');
     if (!token || !followSearch.trim()) return;
     try {
-      const res = await axios.get<{ username: string }[]>(
-        `${baseURL}/api/neighbor/search/`,
-        { params: { q: followSearch.trim() }, headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSearchResults(res.data.map(u => u.username));
+      const res = await fetch(`${baseURL}/api/neighbor/search/?q=${encodeURIComponent(followSearch.trim())}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setSearchResults(data.map((u: any) => u.username));
     } catch {
       Alert.alert('검색 실패');
     }
@@ -87,17 +112,41 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
     try {
-      await axios.post(
-        `${baseURL}/api/neighbor/request/`,
-        { target_id : username },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await fetch(`${baseURL}/api/neighbor/request/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username }),
+      });
       Alert.alert('성공', '이웃 요청을 보냈습니다.');
+      await loadAll();
     } catch (error) {
       console.error('이웃 요청 실패:', error);
       Alert.alert('실패', '이웃 요청 중 문제가 발생했습니다.');
     }
   };
+
+  const removeNeighbor = async (username: string) => {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${baseURL}/api/neighbor/remove/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ username }),
+    });
+    if (!res.ok) throw new Error('이웃 삭제 실패');
+    await loadAll();  // UI 갱신
+  } catch (e) {
+    console.error('이웃 삭제 실패:', e);
+    Alert.alert('실패', '이웃 취소 중 오류가 발생했습니다.');
+  }
+};
 
   const handleLogout = async () => {
     await AsyncStorage.clear();
@@ -108,13 +157,17 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await axios.post<Board>(
-        `${baseURL}/api/boards/`,
-        { title: newBoardName.trim(), category: 'default' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setBoards(prev => [...prev, res.data]);
+      const res = await fetch(`${baseURL}/api/boards/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: newBoardName.trim(), category: 'default' }),
+      });
+      if (!res.ok) throw new Error('생성 실패');
       setNewBoardName('');
+      await loadAll();
     } catch {
       Alert.alert('보드 추가 실패');
     }
@@ -148,14 +201,29 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
 
         <Text style={[styles.subtitle, { marginTop: 16 }]}>이웃의 보드 목록</Text>
         <FlatList
-          data={sharedBoards}
-          keyExtractor={item => `shared-${item.id}`}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.boardRow} onPress={() => navigation.navigate('MemoBoard', item.id === 0 ? { folderId: 0, boardTitle: '사용방법', isGuide: true } : { folderId: item.id, boardTitle: item.title })}>
-              <Text style={styles.boardText}>{item.title}</Text>
-            </TouchableOpacity>
-          )}
-        />
+  data={sharedBoards}
+  keyExtractor={item => `shared-${item.id}`}
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={styles.boardRow}
+      onPress={() => {
+        if (item.id === 0) {
+          navigation.navigate('MemoBoard', { folderId: 0 });
+        } else {
+          const filteredMemos = sharedMemos.filter(m => m.board === item.id);
+          navigation.navigate('MemoBoard', {
+            folderId: item.id,
+            boardTitle: item.title,
+            presetMemos: filteredMemos,
+            boardOwner: item.user, // optional
+          });
+        }
+      }}
+    >
+      <Text style={styles.boardText}>{item.title}</Text>
+    </TouchableOpacity>
+  )}
+/>
 
         <TextInput
           style={styles.input}
@@ -220,13 +288,19 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
             />
 
             <Text style={styles.subtitle}>내 이웃 목록</Text>
-            <FlatList
-              data={followingList}
-              keyExtractor={item => `follow-${item}`}
-              renderItem={({ item }) => (
-                <Text style={styles.boardText}>{item}</Text>
-              )}
-            />
+<FlatList
+  data={followingList}
+  keyExtractor={item => `follow-${item}`}
+  renderItem={({ item }) => (
+    <View style={styles.boardRowContent}>
+      <Text style={styles.boardText}>{item}</Text>
+      <TouchableOpacity onPress={() => removeNeighbor(item)}>
+        <Text style={styles.addButtonText}>이웃 취소</Text>
+      </TouchableOpacity>
+    </View>
+  )}
+/>
+
 
             <TouchableOpacity onPress={() => setShowFollowModal(false)} style={styles.addButton}>
               <Text style={styles.addButtonText}>닫기</Text>

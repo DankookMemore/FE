@@ -1,3 +1,5 @@
+// ✅ MemoBoardScreen.tsx (React Native)
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -29,35 +31,50 @@ type Memo = {
 
 const MemoBoardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute<{ params: { folderId: number; boardTitle?: string; isGuide?: boolean } }>();
-  const { folderId, boardTitle: routeBoardTitle, isGuide } = route.params;
+  const route = useRoute<{
+    params: {
+      folderId: number;
+      boardTitle?: string;
+      boardOwner?: string; // username
+      isGuide?: boolean;
+      presetMemos?: Memo[];
+    };
+  }>();
+  const { folderId, boardTitle: routeBoardTitle, boardOwner, isGuide, presetMemos } = route.params;
 
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newMemo, setNewMemo] = useState('');
   const [boardTitle, setBoardTitle] = useState(routeBoardTitle || '');
   const [summaryText, setSummaryText] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isGuide) {
-      fetchBoardTitle();
-    }
-    fetchMemos();
-  }, []);
+useEffect(() => {
+  // boardTitle 이 명시적으로 넘어오지 않았을 경우에만 fetch
+  if (!isGuide && !routeBoardTitle) {
+    fetchBoardTitle();
+  }
 
-  const fetchBoardTitle = async () => {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) return;
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/api/boards/${folderId}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setBoardTitle(response.data.title ?? '제목 없음');
-    } catch (error) {
-      console.error('보드 제목 불러오기 실패:', error);
-      setBoardTitle('불러오기 실패');
-    }
-  };
+  if (presetMemos && presetMemos.length > 0) {
+    setMemos(presetMemos);
+  } else {
+    fetchMemos();
+  }
+}, []);
+
+const fetchBoardTitle = async () => {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) return;
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/api/boards/${folderId}/`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setBoardTitle(response.data.title ?? '제목 없음');
+  } catch (error) {
+    console.error('보드 제목 불러오기 실패:', error);
+    setBoardTitle('불러오기 실패');
+  }
+};
+
 
   const fetchMemos = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -69,21 +86,25 @@ const MemoBoardScreen: React.FC = () => {
           id: 0,
           timestamp: new Date().toISOString(),
           is_finished: false,
-          content: `📌 여기는 사용방법 보드입니다.\n\n1. 아이디어 메모에는 다양한 아이디어가 제시되어 있음을 알 수 있다.\n2. 각각의 숫자 조합은 서로 다른 아이디어를 나타내고 있을 가능성이 있다.\n3. 이러한 아이디어들은 개별적으로 고려되었지만, 전체 흐름을 고려하여 유기적으로 연결될 수 있다.\n4. 아이디어를 발전시키고 구체화하기 위해서는 각각의 아이디어를 깊게 고민하고, 상호작용하며 발전시킬 필요가 있다.\n5. 이러한 아이디어 메모는 창의적인 아이디어 발굴과 혁신적인 발전을 이끌어낼 수 있는 중요한 자원이 될 수 있다.`,
+          content: '이곳은 사용법 안내 보드입니다.',
         },
       ]);
     } else {
       try {
-        const response = await axios.get(
-          `${BASE_URL}/api/memos/?board=${folderId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const params: any = { board: folderId };
+        if (boardOwner) params.user = boardOwner;
+
+        const response = await axios.get(`${BASE_URL}/api/memos/`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        });
         setMemos(response.data);
       } catch (error) {
         console.error('메모 불러오기 실패:', error);
       }
     }
   };
+
 
   const addMemo = async () => {
     const content = newMemo.trim();
@@ -146,13 +167,9 @@ const MemoBoardScreen: React.FC = () => {
         keyExtractor={item => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.memoBox}>
-            <Text style={styles.memoTitle}>
-              {new Date(item.timestamp).toLocaleDateString()}
-            </Text>
+            <Text style={styles.memoTitle}>{new Date(item.timestamp).toLocaleDateString()}</Text>
             <Text style={styles.memoContent}>{item.content}</Text>
-            <Text style={styles.timestamp}>
-              {new Date(item.timestamp).toLocaleTimeString()}
-            </Text>
+            <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleTimeString()}</Text>
           </View>
         )}
       />
