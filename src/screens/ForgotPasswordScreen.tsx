@@ -13,7 +13,7 @@ import axios from 'axios';
 import { styles } from './ForgotPasswordScreen.styles';
 import { RootStackParamList } from '../../App';
 
-const baseURL = 'http://localhost:8081';
+const baseURL = 'http://localhost:8000';
 
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
