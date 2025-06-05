@@ -34,7 +34,7 @@ type Memo = {
 const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [boards, setBoards] = useState<Board[]>([]);
-  const [sharedBoards, setSharedBoards] = useState<Board[]>([{ id: 0, title: '사용방법' }]);
+  const [sharedBoards, setSharedBoards] = useState<Board[]>([{ id: 0, title: '📌안내 : 보드 이름을 적고 보드 추가를 눌러주세요📌' }]);
   const [sharedMemos, setSharedMemos] = useState<Memo[]>([]);
   const [newBoardName, setNewBoardName] = useState('');
 
@@ -61,7 +61,7 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
 
       setBoards(boards);
       setFollowingList(followings.map((u: any) => u.username));
-      setSharedBoards([{ id: 0, title: '사용방법' }, ...shared.boards]);
+      setSharedBoards([{ id: 0, title: '📌안내 : 보드 이름을 적고 보드 추가를 눌러주세요📌' }, ...shared.boards]);
       setSharedMemos(shared.memos);
       setFollowRequests(requests.map((u: any) => u.username));
     } catch (e) {
