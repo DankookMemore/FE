@@ -19,7 +19,13 @@ export type RootStackParamList = {
   Signup: undefined;
   ForgotPassword: undefined;
   BoardList: undefined;
-  MemoBoard: { folderId: number };
+  MemoBoard: {
+    folderId: number;
+    boardTitle?: string;
+    boardOwner?: string;
+    isGuide?: boolean;
+    presetMemos?: Memo[];
+  };
 };
 
 const AuthStack = createNativeStackNavigator<RootStackParamList>();
