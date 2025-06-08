@@ -60,15 +60,6 @@ const MemoBoardScreen: React.FC = () => {
         </View>
       );
     }
-    if (!summaryText) {
-      return (
-        <View style={styles.memoBox}>
-          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>
-            📌3. 계속 구체화 해주세요~!! 아이디어가 완성되면 하단의 정리하기 버튼을 눌러주세요
-          </Text>
-        </View>
-      );
-    }
     return null;
   };
 
@@ -128,6 +119,7 @@ const MemoBoardScreen: React.FC = () => {
       setMemos(prev => [...prev, response.data]);
       setNewMemo('');
     } catch {
+      console.error('메모 추가 실패');
     }
   };
 
@@ -142,6 +134,7 @@ const MemoBoardScreen: React.FC = () => {
       );
       setSummaryText(response.data.summary);
     } catch {
+      console.error('요약 실패');
     }
   };
 
@@ -186,18 +179,18 @@ const MemoBoardScreen: React.FC = () => {
           <TouchableOpacity style={styles.addButton} onPress={addMemo}>
             <Text style={styles.addButtonText}>메모 추가</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.summaryButton} onPress={summarizeBoard}>
+            <Text style={styles.summaryButtonText}>정리하기</Text>
+          </TouchableOpacity>
+
+          {summaryText && (
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>📌 전체 요약:</Text>
+              <Text style={styles.summaryText}>{summaryText}</Text>
+            </View>
+          )}
         </>
-      )}
-
-      <TouchableOpacity style={styles.summaryButton} onPress={summarizeBoard}>
-        <Text style={styles.summaryButtonText}>정리하기</Text>
-      </TouchableOpacity>
-
-      {summaryText && (
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryLabel}>📌 전체 요약:</Text>
-          <Text style={styles.summaryText}>{summaryText}</Text>
-        </View>
       )}
     </KeyboardAvoidingView>
   );
