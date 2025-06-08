@@ -49,22 +49,22 @@ const MemoBoardScreen: React.FC = () => {
     if (memos.length === 0) {
       return (
         <View style={styles.memoBox}>
-          <Text style={styles.memoContent}>1. 안녕하세요~ 어떤 아이디어를 가지고 있으신가요?</Text>
+          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>📌1. 안녕하세요~ 어떤 아이디어를 가지고 있으신가요?</Text>
         </View>
       );
     }
     if (memos.length === 1) {
       return (
         <View style={styles.memoBox}>
-          <Text style={styles.memoContent}>2. 아래 아이디어를 어떻게 구체화하실 건가요?</Text>
+          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>📌2. 아래 아이디어를 어떻게 구체화하실 건가요?</Text>
         </View>
       );
     }
     if (!summaryText) {
       return (
         <View style={styles.memoBox}>
-          <Text style={styles.memoContent}>
-            3. 계속 구체화 해주세요~!! 아이디어가 완성되면 하단의 정리하기 버튼을 눌러주세요
+          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>
+            📌3. 계속 구체화 해주세요~!! 아이디어가 완성되면 하단의 정리하기 버튼을 눌러주세요
           </Text>
         </View>
       );

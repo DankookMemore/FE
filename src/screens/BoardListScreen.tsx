@@ -254,7 +254,10 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
                 }
               }}
             >
-              <Text style={styles.boardText}>{item.title}</Text>
+              <Text style={styles.boardText}>
+                {item.title}
+                {item.user ? ` (${item.user}님의 보드)` : ''}
+              </Text>
             </TouchableOpacity>
           )}
         />
