@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Image,
@@ -35,11 +34,10 @@ const LoginScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ setI
         await AsyncStorage.setItem('userId', id.toString());
         await AsyncStorage.setItem('nickname', nickname);
 
-        Alert.alert('로그인 성공', `${nickname}님 환영합니다!`);
         setIsLoggedIn(true);
       }
     } catch (error: any) {
-      Alert.alert('로그인 실패', error.response?.data?.error || '서버 오류');
+      console.error('로그인 실패:', error.response?.data?.error || error);
     }
   };
 

@@ -5,7 +5,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  Alert,
   Modal,
   Platform,
   KeyboardAvoidingView,
@@ -119,7 +118,6 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       const data = await res.json();
       setSearchResults(data.map((u: any) => u.username));
     } catch {
-      Alert.alert('검색 실패');
     }
   };
 
@@ -135,11 +133,9 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
         },
         body: JSON.stringify({ username }),
       });
-      Alert.alert('성공', '이웃 요청을 보냈습니다.');
       await loadAll();
     } catch (error) {
       console.error('이웃 요청 실패:', error);
-      Alert.alert('실패', '이웃 요청 중 문제가 발생했습니다.');
     }
   };
 
@@ -159,7 +155,6 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       await loadAll();
     } catch (e) {
       console.error('이웃 삭제 실패:', e);
-      Alert.alert('실패', '이웃 취소 중 오류가 발생했습니다.');
     }
   };
 
@@ -184,7 +179,6 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       setNewBoardName('');
       await loadAll();
     } catch {
-      Alert.alert('보드 추가 실패');
     }
   };
 

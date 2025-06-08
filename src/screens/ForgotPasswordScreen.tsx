@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -22,7 +21,7 @@ const ForgotPasswordScreen: React.FC = () => {
 
   const handleResetPassword = async () => {
     if (!email || !newPassword) {
-      Alert.alert('오류', '이메일과 새로운 비밀번호를 모두 입력해주세요.');
+      console.error('이메일과 새로운 비밀번호를 모두 입력해주세요.');
       return;
     }
     try {
@@ -31,14 +30,13 @@ const ForgotPasswordScreen: React.FC = () => {
         { email, new_password: newPassword }
       );
       if (response.status === 200) {
-        Alert.alert('성공', '비밀번호가 재설정되었습니다.');
         navigation.navigate('Login');
       } else {
-        Alert.alert('실패', '재설정에 실패했습니다.');
+        console.error('비밀번호 재설정에 실패했습니다.');
       }
     } catch (error: any) {
       const msg = error.response?.data?.error || '비밀번호 재설정 중 오류가 발생했습니다.';
-      Alert.alert('오류', msg);
+      console.error('오류:', msg);
     }
   };
 

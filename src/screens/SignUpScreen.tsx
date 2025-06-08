@@ -1,11 +1,9 @@
-// SignupScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -24,12 +22,12 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !nickname) {
-      Alert.alert('오류', '모든 항목을 입력해주세요.');
+      console.error('모든 항목을 입력해주세요.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+      console.error('비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -43,8 +41,7 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
       });
 
       if (response.status === 201) {
-        Alert.alert('회원가입 성공', '자동 로그인 중입니다...');
-
+        // 자동 로그인
         const loginRes = await axios.post('http://localhost:8000/api/login/', {
           username: email,
           password,
@@ -58,7 +55,7 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
           setIsLoggedIn(true);
           navigation.reset({ index: 0, routes: [{ name: 'BoardList' }] });
         } else {
-          Alert.alert('로그인 실패', '자동 로그인에 실패했습니다.');
+          console.error('자동 로그인에 실패했습니다.');
           navigation.navigate('Login');
         }
       }
@@ -72,7 +69,7 @@ const SignupScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ set
         data?.nickname?.[0] ||
         data?.email?.[0] ||
         '회원가입에 실패했습니다.';
-      Alert.alert('회원가입 오류', message);
+      console.error('회원가입 오류:', message);
     }
   };
 
