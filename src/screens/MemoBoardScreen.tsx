@@ -5,8 +5,10 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  Alert,
   Platform,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import {
   RouteProp,
@@ -44,19 +46,29 @@ const MemoBoardScreen: React.FC = () => {
   const [boardTitle, setBoardTitle] = useState(routeBoardTitle || '');
   const [summaryText, setSummaryText] = useState<string | null>(null);
 
+  const [editingMemoId, setEditingMemoId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+
   const renderHeader = () => {
     if (folderId === 0 && isGuide) return null;
     if (memos.length === 0) {
       return (
-        <View style={styles.memoBox}>
-          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>📌1. 안녕하세요~ 어떤 아이디어를 가지고 있으신가요?</Text>
+        <View>
+          <Text style={{ fontWeight: 'bold' }}>📌1. 안녕하세요~ 어떤 아이디어를 가지고 있으신가요?</Text>
         </View>
       );
     }
     if (memos.length === 1) {
       return (
-        <View style={styles.memoBox}>
-          <Text style={[styles.memoContent, { fontWeight: 'bold' }]}>📌2. 아래 아이디어를 어떻게 구체화하실 건가요?</Text>
+        <View>
+          <Text style={{ fontWeight: 'bold' }}>📌2. 아래 아이디어를 어떻게 구체화하실 건가요?</Text>
+        </View>
+      );
+    }
+    if (!summaryText) {
+      return (
+        <View>
+          <Text style={{ fontWeight: 'bold' }}>📌3. 계속 진행해주세요!! 완성되면 정리하기 버튼을 눌러주세요</Text>
         </View>
       );
     }
@@ -64,9 +76,7 @@ const MemoBoardScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isGuide && !routeBoardTitle) {
-      fetchBoardTitle();
-    }
+    if (!isGuide && !routeBoardTitle) fetchBoardTitle();
     if (presetMemos && presetMemos.length > 0) {
       setMemos(presetMemos);
     } else {
@@ -105,7 +115,6 @@ const MemoBoardScreen: React.FC = () => {
   };
 
   const addMemo = async () => {
-    if (folderId === 0 && isGuide) return;
     const content = newMemo.trim();
     if (!content) return;
     const token = await AsyncStorage.getItem('token');
@@ -119,7 +128,47 @@ const MemoBoardScreen: React.FC = () => {
       setMemos(prev => [...prev, response.data]);
       setNewMemo('');
     } catch {
-      console.error('메모 추가 실패');
+      Alert.alert('메모 추가 실패', '서버 오류');
+    }
+  };
+
+  const deleteMemo = async (id: number) => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      await axios.delete(`${BASE_URL}/api/memos/${id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMemos(prev => prev.filter(m => m.id !== id));
+    } catch {
+      Alert.alert('삭제 실패', '서버 오류');
+    }
+  };
+
+  const startEdit = (memo: Memo) => {
+    setEditingMemoId(memo.id);
+    setEditingContent(memo.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingMemoId(null);
+    setEditingContent('');
+  };
+
+  const submitEdit = async () => {
+    if (!editingContent.trim() || editingMemoId === null) return;
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await axios.patch(
+        `${BASE_URL}/api/memos/${editingMemoId}/`,
+        { content: editingContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMemos(prev => prev.map(m => (m.id === editingMemoId ? response.data : m)));
+      cancelEdit();
+    } catch {
+      Alert.alert('수정 실패', '서버 오류');
     }
   };
 
@@ -134,7 +183,7 @@ const MemoBoardScreen: React.FC = () => {
       );
       setSummaryText(response.data.summary);
     } catch {
-      console.error('요약 실패');
+      Alert.alert('요약 실패', 'ChatGPT 요약 요청이 실패했습니다.');
     }
   };
 
@@ -163,35 +212,62 @@ const MemoBoardScreen: React.FC = () => {
             <Text style={styles.timestamp}>
               {new Date(item.timestamp).toLocaleTimeString()}
             </Text>
+            {!isGuide && (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity onPress={() => startEdit(item)}>
+                  <Text>수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteMemo(item.id)}>
+                  <Text>삭제</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       />
 
-      {!(folderId === 0 && isGuide) && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="새 메모 입력"
-            placeholderTextColor="#aaa"
-            value={newMemo}
-            onChangeText={setNewMemo}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addMemo}>
-            <Text style={styles.addButtonText}>메모 추가</Text>
-          </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="새 메모 입력"
+        placeholderTextColor="#aaa"
+        value={newMemo}
+        onChangeText={setNewMemo}
+      />
+      <TouchableOpacity style={styles.addButton} onPress={addMemo}>
+        <Text style={styles.addButtonText}>메모 추가</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity style={styles.summaryButton} onPress={summarizeBoard}>
-            <Text style={styles.summaryButtonText}>정리하기</Text>
-          </TouchableOpacity>
+      <TouchableOpacity style={styles.summaryButton} onPress={summarizeBoard}>
+        <Text style={styles.summaryButtonText}>정리하기</Text>
+      </TouchableOpacity>
 
-          {summaryText && (
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>📌 전체 요약:</Text>
-              <Text style={styles.summaryText}>{summaryText}</Text>
-            </View>
-          )}
-        </>
+      {summaryText && (
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryLabel}>📌 전체 요약:</Text>
+          <Text style={styles.summaryText}>{summaryText}</Text>
+        </View>
       )}
+
+      <Modal visible={editingMemoId !== null} animationType="slide">
+        <View>
+          <View>
+            <Text>메모 수정</Text>
+            <TextInput
+              style={styles.input}
+              value={editingContent}
+              onChangeText={setEditingContent}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity onPress={cancelEdit}>
+                <Text>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={submitEdit}>
+                <Text>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

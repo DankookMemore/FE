@@ -33,6 +33,17 @@ export const styles = StyleSheet.create({
     color: 'red',
     fontSize: 16,
   },
+
+  promptBox: {
+    width: contentWidth,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+
   memoBox: {
     width: contentWidth,
     backgroundColor: '#ffffff',
@@ -58,6 +69,7 @@ export const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'right',
   },
+
   input: {
     width: contentWidth,
     borderWidth: 1,
@@ -71,11 +83,11 @@ export const styles = StyleSheet.create({
   },
   addButton: {
     width: contentWidth,
-    backgroundColor: '#deb887', // 변경된 색상
+    backgroundColor: '#deb887',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 12,
   },
   addButtonText: {
     color: '#1b1b1b',
@@ -88,7 +100,7 @@ export const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 16,
   },
   summaryButtonText: {
     color: '#1b1b1b',
@@ -111,5 +123,21 @@ export const styles = StyleSheet.create({
   summaryText: {
     fontSize: 15,
     color: '#333',
+  },
+
+  actionContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+  },
+  actionButton: {
+    marginLeft: 12,
+  },
+  editText: {
+    color: '#2680EB',
+  },
+  deleteText: {
+    color: '#EB4138',
   },
 });

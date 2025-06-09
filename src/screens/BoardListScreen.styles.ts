@@ -6,18 +6,18 @@ const contentWidth = screenWidth > 500 ? 400 : '90%';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fef9ef', // 로그인과 동일한 배경 톤
+    backgroundColor: '#fef9ef',
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingVertical: 20,
   },
   inner: {
     width: contentWidth,
-    backgroundColor: '#ffffff', // 카드 배경
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     borderWidth: 2,
-    borderColor: '#deb887', // 따뜻한 브라운 테두리
+    borderColor: '#deb887',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -30,17 +30,17 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    flexWrap: 'wrap', // 추가: 요소가 넘칠 때 줄바꿈 허용
+    flexWrap: 'wrap',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8, // 요소 간 간격 추가
+    gap: 8,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#6b4226', // 따뜻한 브라운
+    color: '#6b4226',
   },
   subtitle: {
     fontSize: 16,
@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   logout: {
-    fontSize: 12, // 글씨 크기 줄임
+    fontSize: 12,
     color: 'red',
   },
   boardRow: {
@@ -65,6 +65,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
   },
   boardText: {
     fontSize: 14,
@@ -89,7 +90,39 @@ export const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#1b1b1b',
-    fontSize: 12, // 글씨 크기 줄임
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  actionButton: {
+    backgroundColor: '#deb887',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: '#1b1b1b',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#f28b82',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   modalBackdrop: {
@@ -103,7 +136,7 @@ export const styles = StyleSheet.create({
     maxHeight: '60%',
   },
   searchInput: {
-    width: '30%', // 검색 입력 길이 조정
+    width: '30%',
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 10,
@@ -120,10 +153,10 @@ export const styles = StyleSheet.create({
     marginTop: 8,
   },
   sectionContainer: {
-  borderWidth: 1,
-  borderColor: '#ddd',
-  borderRadius: 8,
-  padding: 8,
-  marginBottom: 12,
-},
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 12,
+  },
 });

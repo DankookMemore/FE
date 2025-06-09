@@ -28,6 +28,7 @@ type Memo = {
   user: string;
 };
 
+
 const guideSteps = [
   '📌MEMO-RE에 오신 것을 환영합니다.',
   '📌보드 목록을 추가 하세요.',
@@ -51,6 +52,9 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [followingList, setFollowingList] = useState<string[]>([]);
   const [followRequests, setFollowRequests] = useState<string[]>([]);
+
+  const [editingBoardId, setEditingBoardId] = useState<number | null>(null);
+  const [editingBoardName, setEditingBoardName] = useState<string>('');
 
   const loadAll = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -86,6 +90,57 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
     }, [])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [])
+  );
+
+  const deleteBoard = async (id: number) => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${baseURL}/api/boards/${id}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('삭제 실패');
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const startEditing = (board: Board) => {
+    setEditingBoardId(board.id);
+    setEditingBoardName(board.title);
+  };
+
+  const cancelEditing = () => {
+    setEditingBoardId(null);
+    setEditingBoardName('');
+  };
+
+  const updateBoard = async (id: number) => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${baseURL}/api/boards/${id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: editingBoardName }),
+      });
+      if (!res.ok) throw new Error('수정 실패');
+      cancelEditing();
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const respondRequest = async (username: string, accept: boolean) => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
@@ -117,8 +172,7 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       );
       const data = await res.json();
       setSearchResults(data.map((u: any) => u.username));
-    } catch {
-    }
+    } catch {}
   };
 
   const sendFollowRequest = async (username: string) => {
@@ -179,6 +233,7 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
       setNewBoardName('');
       await loadAll();
     } catch {
+      console.error('보드 생성 실패');
     }
   };
 
@@ -205,14 +260,38 @@ const BoardListScreen: React.FC<{ setIsLoggedIn: (val: boolean) => void }> = ({ 
           data={boards}
           keyExtractor={item => `mine-${item.id}`}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.boardRow}
-              onPress={() =>
-                navigation.navigate('MemoBoard', { folderId: item.id, boardTitle: item.title })
-              }
-            >
-              <Text style={styles.boardText}>{item.title}</Text>
-            </TouchableOpacity>
+            editingBoardId === item.id ? (
+              <View style={styles.boardRowContent}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={editingBoardName}
+                  onChangeText={setEditingBoardName}
+                />
+                <TouchableOpacity onPress={() => updateBoard(item.id)}>
+                  <Text style={styles.addButtonText}>저장</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={cancelEditing}>
+                  <Text style={styles.addButtonText}>취소</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.boardRowContent}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() =>
+                    navigation.navigate('MemoBoard', { folderId: item.id, boardTitle: item.title })
+                  }
+                >
+                  <Text style={styles.boardText}>{item.title}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => startEditing(item)}>
+                  <Text style={styles.addButtonText}>수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteBoard(item.id)}>
+                  <Text style={styles.addButtonText}>삭제</Text>
+                </TouchableOpacity>
+              </View>
+            )
           )}
         />
 
